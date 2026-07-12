@@ -28,6 +28,12 @@ docs/
 environments/
 ```
 
+## Repository Status
+
+Current Phase: Git for Platform Engineering
+
+Current Module: Git Branching Strategy
+
 ## Author
 
 Rajesh Mutale
