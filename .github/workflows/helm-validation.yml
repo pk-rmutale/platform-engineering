@@ -1,0 +1,32 @@
+name: Helm Validation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  helm-validation:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Verify Helm Installation
+        run: helm version
+
+      - name: Helm Lint
+        run: |
+          helm lint ./helm/rajesh-web
+
+      - name: Helm Template
+        run: |
+          helm template rajesh-dev \
+            ./helm/rajesh-web \
+            -f ./environments/dev/rajesh-web-values.yaml
