@@ -1,0 +1,23 @@
+name: GitHub Context
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  context:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: reference
+        run: echo "${{ github.ref_name }}"
+
+      - name: Repository
+        run: echo "${{ github.repository }}"
+
+      - name: show runner os version
+        run: echo ${{ github.actor }}
