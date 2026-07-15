@@ -19,5 +19,5 @@ jobs:
       - name: Repository
         run: echo "${{ github.repository }}"
 
-      - name: show runner os version
+      - name: actor
         run: echo ${{ github.actor }}

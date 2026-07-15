@@ -5,11 +5,29 @@ on:
     branches:
       - main
 
+env:
+
+  CHART_PATH: ./helm/rajesh-web
+
+
+
 jobs:
+
   helm-validation:
 
     runs-on: ubuntu-latest
 
+    strategy:
+
+      matrix:
+
+        environment:
+
+          - dev
+
+          - qa
+
+          - prod
     steps:
 
       - name: Checkout Repository
@@ -18,15 +36,16 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      - name: Verify Helm Installation
+      - name: Helm Version
         run: helm version
 
       - name: Helm Lint
-        run: |
-          helm lint ./helm/rajesh-web
+        run: helm lint $CHART_PATH
 
       - name: Helm Template
+
         run: |
-          helm template rajesh-dev \
-            ./helm/rajesh-web \
-            -f ./environments/dev/rajesh-web-values.yaml
+          helm template \
+            rajesh-${{ matrix.environment }} \
+            $CHART_PATH \
+            -f ./environments/${{ matrix.environment }}/rajesh-web-values.yaml
