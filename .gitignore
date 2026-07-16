@@ -1,1 +1,39 @@
-Logs*.logVS Code.vscode/Terraform.terraform/*.tfstate*.tfstate.backupHelm*.tgzKuberneteskubeconfigOS FilesThumbs.db.DS_Store
+# ----------------------------------------
+# Logs
+# ----------------------------------------
+*.log
+crash.log
+crash.*.log
+
+# ----------------------------------------
+# IDEs
+# ----------------------------------------
+.vscode/
+.idea/
+
+# ----------------------------------------
+# Terraform
+# ----------------------------------------
+**/.terraform/
+*.tfstate
+*.tfstate.*
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ----------------------------------------
+# Helm
+# ----------------------------------------
+*.tgz
+
+# ----------------------------------------
+# Kubernetes
+# ----------------------------------------
+kubeconfig
+
+# ----------------------------------------
+# Operating System Files
+# ----------------------------------------
+Thumbs.db
+.DS_Store
