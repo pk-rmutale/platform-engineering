@@ -6,13 +6,21 @@ on:
       - main
 
 jobs:
+
   terraform-validation:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        environment:
+          - dev
+          - qa
+          - prod
+
     defaults:
       run:
-        working-directory: terraform/environments/dev
+        working-directory: terraform/environments/${{ matrix.environment }}
 
     steps:
 
