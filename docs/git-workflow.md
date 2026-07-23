@@ -11,3 +11,5 @@ This document describes the Git workflow used in the Platform Engineering Learni
 5. Open a Pull Request.
 6. Review changes.
 7. Merge into main.
+
+8. to check for patch trigger
