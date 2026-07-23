@@ -6,3 +6,6 @@ Environment: ${var.environment}
 Managed by Terraform
 EOF
 }
+
+
+new file
