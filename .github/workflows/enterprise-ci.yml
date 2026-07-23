@@ -45,9 +45,7 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Test Failure Behavior
-        if: matrix.environment == 'qa'
-        run: exit 1
+      
 
   helm-validation:
 
