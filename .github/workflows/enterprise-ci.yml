@@ -1,0 +1,81 @@
+name: Enterprise CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  terraform-validation:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment:
+          - dev
+          - qa
+          - prod
+
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ matrix.environment }}
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Verify Terraform Version
+        run: terraform version
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Initialize
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  helm-validation:
+
+    needs: terraform-validation
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment:
+          - dev
+          - qa
+          - prod
+
+    env:
+      CHART_PATH: ./helm/rajesh-web
+      VALUES_FILE: ./environments/${{ matrix.environment }}/rajesh-web-values.yaml
+      RELEASE_NAME: rajesh-${{ matrix.environment }}
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Verify Helm Installation
+        run: helm version
+
+      - name: Helm Lint
+        run: helm lint $CHART_PATH
+
+      - name: Helm Template
+        run: |
+          helm template $RELEASE_NAME \
+            $CHART_PATH \
+            -f $VALUES_FILE
