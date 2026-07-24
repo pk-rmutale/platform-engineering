@@ -36,10 +36,14 @@ jobs:
               - 'environments/**'
 
    terraform-validation:
+
+    
+    
      needs: detect-changes
      if: needs.detect-changes.outputs.terraform == 'true'
-     runs-on: ubuntu-latest
-
+     runs-on: ubuntu-latest   
+     
+     
      strategy:
        fail-fast: false
        matrix:
@@ -63,6 +67,7 @@ jobs:
       - name: Verify Terraform Version
         run: terraform version
 
+      
       - name: Terraform Format Check
         run: terraform fmt -check
 
@@ -71,6 +76,10 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
+
+      - name: Test Terraform Failure Gate
+        if: matrix.environment == 'qa'
+        run: exit 1
 
    helm-validation:
 
