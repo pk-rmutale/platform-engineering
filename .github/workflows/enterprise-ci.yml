@@ -10,6 +10,16 @@ on:
       - 'environments/**'
       - '.github/workflows/enterprise-ci.yml'
 
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - 'helm/**'
+      - 'environments/**'
+      - '.github/workflows/enterprise-ci.yml'
+
 jobs:
 
 
