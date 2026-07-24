@@ -11,25 +11,48 @@ on:
 
 jobs:
 
-  terraform-validation:
 
+   detect-changes:
     runs-on: ubuntu-latest
 
-    
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+      helm: ${{ steps.filter.outputs.helm }}
 
-    strategy:
-     fail-fast: false
-     matrix:
-      environment:
-       - dev
-       - qa
-       - prod
+    steps:
 
-    defaults:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Changed Paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            terraform:
+              - 'terraform/**'
+            helm:
+              - 'helm/**'
+              - 'environments/**'
+
+   terraform-validation:
+     needs: detect-changes
+     if: needs.detect-changes.outputs.terraform == 'true'
+     runs-on: ubuntu-latest
+
+     strategy:
+       fail-fast: false
+       matrix:
+        environment:
+        - dev
+        - qa
+        - prod
+
+     defaults:
       run:
         working-directory: terraform/environments/${{ matrix.environment }}
 
-    steps:
+     steps:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -49,11 +72,17 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      
+   helm-validation:
 
-  helm-validation:
+    needs:
+      - detect-changes
+      - terraform-validation
 
-    needs: terraform-validation
+    if: |
+      always() &&
+      needs.detect-changes.outputs.helm == 'true' &&
+      (needs.terraform-validation.result == 'success' ||
+       needs.terraform-validation.result == 'skipped')
 
     runs-on: ubuntu-latest
 
