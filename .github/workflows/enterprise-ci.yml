@@ -79,6 +79,28 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+  terraform-security:
+    needs:
+      - detect-changes
+      - terraform-validation
+
+    if: |
+      always() &&
+      needs.detect-changes.outputs.terraform == 'true' &&
+      needs.terraform-validation.result == 'success'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Checkov Terraform Security Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/
+          framework: terraform
+
   helm-validation:
     needs:
       - detect-changes
