@@ -21,6 +21,10 @@ on:
 
 jobs:
 
+################################################################################
+# Detect Changed Files
+################################################################################
+
   detect-changes:
     runs-on: ubuntu-latest
 
@@ -29,6 +33,7 @@ jobs:
       helm: ${{ steps.filter.outputs.helm }}
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -39,17 +44,26 @@ jobs:
           filters: |
             terraform:
               - 'terraform/**'
+
             helm:
               - 'helm/**'
               - 'environments/**'
 
+################################################################################
+# Terraform Validation
+################################################################################
+
   terraform-validation:
+
     needs: detect-changes
+
     if: needs.detect-changes.outputs.terraform == 'true'
+
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
+
       matrix:
         environment:
           - dev
@@ -61,6 +75,7 @@ jobs:
         working-directory: terraform/environments/${{ matrix.environment }}
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -79,27 +94,9 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-  terraform-security:
-    needs:
-      - detect-changes
-      - terraform-validation
-
-    if: |
-      always() &&
-      needs.detect-changes.outputs.terraform == 'true' &&
-      needs.terraform-validation.result == 'success'
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Run Checkov Terraform Security Scan
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: terraform/
-          framework: terraform
+################################################################################
+# Helm Validation
+################################################################################
 
   helm-validation:
 
@@ -110,12 +107,16 @@ jobs:
     if: |
       always() &&
       needs.detect-changes.outputs.helm == 'true' &&
-      (needs.terraform-validation.result == 'success' ||
-       needs.terraform-validation.result == 'skipped')
+      (
+        needs.terraform-validation.result == 'success' ||
+        needs.terraform-validation.result == 'skipped'
+      )
 
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
+
       matrix:
         environment:
           - dev
@@ -128,6 +129,7 @@ jobs:
       RELEASE_NAME: rajesh-${{ matrix.environment }}
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -146,38 +148,44 @@ jobs:
             $CHART_PATH \
             -f $VALUES_FILE
 
-  ci-gate:
-    needs:
-      - detect-changes
-      - terraform-validation
-      - helm-validation
+################################################################################
+# Terraform Security Scan
+################################################################################
 
-    if: always()
+  terraform-security:
+
+    needs:
+      - terraform-validation
+
+    if: |
+      always() &&
+      needs.terraform-validation.result == 'success'
 
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify CI Results
-        run: |
-          echo "Terraform result: ${{ needs.terraform-validation.result }}"
-          echo "Helm result: ${{ needs.helm-validation.result }}"
 
-          if [[ "${{ needs.terraform-validation.result }}" == "failure" ]]; then
-            echo "Terraform validation failed"
-            exit 1
-          fi
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-          if [[ "${{ needs.helm-validation.result }}" == "failure" ]]; then
-            echo "Helm validation failed"
-            exit 1
-          fi
+      - name: Run Checkov Terraform Security Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/
+          framework: terraform
 
-          echo "Enterprise CI validation passed"
+################################################################################
+# Package Helm Chart
+################################################################################
 
   package-helm-chart:
 
     needs:
-    - ci-gate
+      - terraform-security
+
+    if: |
+      always() &&
+      needs.terraform-security.result == 'success'
 
     runs-on: ubuntu-latest
 
@@ -192,9 +200,60 @@ jobs:
       - name: Package Helm Chart
         run: |
           mkdir -p package
+
           helm package ./helm/rajesh-web \
             --destination package
 
       - name: List Packaged Files
         run: |
-          ls -lh package          
+          ls -lh package
+
+################################################################################
+# Final CI Gate
+################################################################################
+
+  ci-gate:
+
+    needs:
+      - terraform-validation
+      - helm-validation
+      - terraform-security
+      - package-helm-chart
+
+    if: always()
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Verify Enterprise CI Pipeline
+        run: |
+
+          echo "Terraform Validation : ${{ needs.terraform-validation.result }}"
+          echo "Helm Validation      : ${{ needs.helm-validation.result }}"
+          echo "Terraform Security   : ${{ needs.terraform-security.result }}"
+          echo "Helm Package         : ${{ needs.package-helm-chart.result }}"
+
+          if [[ "${{ needs.terraform-validation.result }}" == "failure" ]]; then
+            echo "Terraform Validation Failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.helm-validation.result }}" == "failure" ]]; then
+            echo "Helm Validation Failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.terraform-security.result }}" == "failure" ]]; then
+            echo "Terraform Security Scan Failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.package-helm-chart.result }}" == "failure" ]]; then
+            echo "Helm Packaging Failed"
+            exit 1
+          fi
+
+          echo "========================================"
+          echo " Enterprise CI Pipeline Passed"
+          echo "========================================"
