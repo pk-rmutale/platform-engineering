@@ -173,3 +173,32 @@ jobs:
           fi
 
           echo "Enterprise CI validation passed"
+
+  package-helm-chart:
+
+    needs:
+      - ci-gate
+      - detect-changes
+
+    if: |
+      needs.detect-changes.outputs.helm == 'true'
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Package Helm Chart
+        run: |
+          mkdir package
+          helm package ./helm/rajesh-web \
+            --destination package
+
+      - name: List Packaged Files
+        run: |
+          ls -lh package          
