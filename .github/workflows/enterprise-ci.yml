@@ -177,10 +177,7 @@ jobs:
   package-helm-chart:
 
     needs:
-      - ci-gate
-      - detect-changes
-
-    if: needs.ci-gate.result == 'success'
+    - ci-gate
 
     runs-on: ubuntu-latest
 
