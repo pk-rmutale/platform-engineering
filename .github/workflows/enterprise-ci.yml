@@ -194,7 +194,7 @@ jobs:
 
       - name: Package Helm Chart
         run: |
-          mkdir package
+          mkdir -p package
           helm package ./helm/rajesh-web \
             --destination package
 
