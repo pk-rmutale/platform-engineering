@@ -180,8 +180,7 @@ jobs:
       - ci-gate
       - detect-changes
 
-    if: |
-      needs.detect-changes.outputs.helm == 'true'
+    if: needs.ci-gate.result == 'success'
 
     runs-on: ubuntu-latest
 
