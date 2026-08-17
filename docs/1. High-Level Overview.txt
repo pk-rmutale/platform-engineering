@@ -1,0 +1,148 @@
+🧭 1. High-Level Overview
+
+Internal users access services through DNS (Route 53).
+Requests go through authentication (Okta OIDC) and load balancers.
+Traffic is routed into an Amazon EKS cluster (Kubernetes).
+Inside the cluster:
+
+Milvus handles vector search workloads.
+FalkorDB handles graph database workloads.
+
+
+Storage and secrets are managed using AWS services:
+
+EBS (storage volumes)
+S3 (object storage)
+Secrets Manager
+
+
+Components:
+
+Internal Cigna Users
+Route 53 (DNS)
+Example URLs:
+
+milvus...evernorthcloud.com
+falkordb...evernorthcloud.com
+
+
+
+Flow:
+
+Users hit the URLs.
+Route 53 resolves DNS to AWS resources.
+Traffic goes to Internal Application Load Balancer (ALB).
+
+
+
+
+ 3. Authentication Layer (Okta OIDC)
+
+Two Okta flows are shown (for different services).
+Protocol: OIDC (OpenID Connect over HTTPS 443)
+
+Purpose:
+
+Authenticate users before allowing access.
+Ensures only authorized internal users use Milvus/FalkorDB.
+
+
+
+☁️ 4. AWS VPC & EKS Cluster
+Everything is inside a private subnet in a VPC.
+Key components:
+
+Amazon EKS (managed Kubernetes control plane)
+EKS Worker Nodes (EC2 instances running containers/pods)
+
+👉 AWS manages the control plane, while workloads run on worker nodes.
+
+
+
+5. Milvus Architecture (Vector Database)
+Inside EKS, you have Milvus cluster mode:
+Components:
+
+Attu UI – Web UI for managing Milvus
+Ingress Controller – routes HTTP traffic
+Milvus Proxy – entry point to Milvus
+
+Internal nodes:
+
+Query Node – handles search queries
+Index Node – builds indexes
+Data Node – stores/ingests data
+Root Coord – metadata & coordination
+Streaming Node – streaming ingestion
+
+Messaging:
+
+Apache Pulsar
+
+Handles messaging between components
+Includes broker, zookeeper, bookkeeper
+
+
+
+👉 This is a distributed vector search system optimized for AI/search workloads.
+
+
+
+
+
+ 7. Storage Layer
+EBS (Elastic Block Store)
+
+Attached to Kubernetes pods
+Used for:
+
+Milvus data
+FalkorDB persistence
+
+
+
+S3 Bucket
+
+Example: cigna-aae-milvus-s3
+Used for:
+
+Backups
+Object storage
+
+
+Access controlled via IRSA (IAM Roles for Service Accounts)
+
+
+
+8. Secrets Management
+AWS Secrets Manager
+
+Stores credentials securely (DB passwords, API keys)
+
+External Secrets Operator (ESO)
+
+Runs inside EKS
+Fetches secrets from Secrets Manager
+Injects them into Kubernetes pods
+
+
+
+
+9. End-to-End Flow
+For Milvus:
+
+User → Route53 → ALB
+ALB → Okta authentication
+ALB → Ingress → Milvus Proxy
+Proxy → internal Milvus nodes
+Data stored in EBS / S3
+
+
+10. Key Design Highlights
+
+🔒 Secure – Okta authentication + private subnets
+⚖️ Scalable – Kubernetes (EKS)
+📦 Modular – Milvus and FalkorDB separated
+💾 Persistent storage via EBS + S3
+🔑 Secrets handled securely via AWS Secrets Manager
+🔗 Service communication via Pulsar + internal networking
