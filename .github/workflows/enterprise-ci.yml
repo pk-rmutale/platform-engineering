@@ -178,14 +178,12 @@ jobs:
 # Package Helm Chart
 ################################################################################
 
-  package-helm-chart:
+  helm-package:
 
     needs:
-      - terraform-security
+      - helm-validation
 
-    if: |
-      always() &&
-      needs.terraform-security.result == 'success'
+    if: needs.helm-validation.result == 'success'
 
     runs-on: ubuntu-latest
 
@@ -208,6 +206,13 @@ jobs:
         run: |
           ls -lh package
 
+      - name: Upload Helm Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: package/
+
+
 ################################################################################
 # Final CI Gate
 ################################################################################
@@ -218,7 +223,7 @@ jobs:
       - terraform-validation
       - helm-validation
       - terraform-security
-      - package-helm-chart
+      - helm-package
 
     if: always()
 
@@ -232,7 +237,7 @@ jobs:
           echo "Terraform Validation : ${{ needs.terraform-validation.result }}"
           echo "Helm Validation      : ${{ needs.helm-validation.result }}"
           echo "Terraform Security   : ${{ needs.terraform-security.result }}"
-          echo "Helm Package         : ${{ needs.package-helm-chart.result }}"
+          echo "Helm Package         : ${{ needs.helm-package.result }}"
 
           if [[ "${{ needs.terraform-validation.result }}" == "failure" ]]; then
             echo "Terraform Validation Failed"
@@ -249,7 +254,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "${{ needs.package-helm-chart.result }}" == "failure" ]]; then
+          if [[ "${{ needs.helm-package.result }}" == "failure" ]]; then
             echo "Helm Packaging Failed"
             exit 1
           fi

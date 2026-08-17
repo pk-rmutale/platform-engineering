@@ -1,17 +1,23 @@
 name: Enterprise CD Pipeline
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Enterprise CI Pipeline
+    types:
+      - completed
     branches:
       - main
-    paths:
-      - 'helm/**'
-      - 'environments/**'
-      - '.github/workflows/enterprise-cd.yml'
 
 jobs:
 
+################################################################################
+# DEV Deployment
+################################################################################
+
   deploy-dev:
+
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     runs-on: ubuntu-latest
 
@@ -29,9 +35,35 @@ jobs:
       - name: Verify Helm Installation
         run: helm version
 
-      - name: Validate Helm Chart
+################################################################################
+# Download Helm Artifact
+################################################################################
+
+      - name: Download Helm Package
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-chart
+          path: package
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List Helm Package
         run: |
-          helm lint ./helm/rajesh-web
+          echo "Downloaded Helm package:"
+          ls -lh package
+
+################################################################################
+# Verify Helm Package
+################################################################################
+
+      - name: Verify Helm Package
+        run: |
+          test -n "$(find package -name '*.tgz' -print -quit)"
+          echo "Helm package found successfully."
+
+################################################################################
+# Simulate DEV Deployment
+################################################################################
 
       - name: Simulate DEV Deployment
         run: |
@@ -40,5 +72,7 @@ jobs:
           echo "========================================"
           echo "Environment : dev"
           echo "Chart       : rajesh-web"
+          echo "Artifact    : helm-chart"
+          echo "CI Run ID   : ${{ github.event.workflow_run.id }}"
           echo "Status      : Deployment simulation"
           echo "========================================"
