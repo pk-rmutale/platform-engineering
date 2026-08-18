@@ -9,6 +9,7 @@ on:
       - 'helm/**'
       - 'environments/**'
       - '.github/workflows/enterprise-ci.yml'
+      - '.github/workflows/enterprise-cd.yml'
 
   pull_request:
     branches:
@@ -18,6 +19,7 @@ on:
       - 'helm/**'
       - 'environments/**'
       - '.github/workflows/enterprise-ci.yml'
+      - '.github/workflows/enterprise-cd.yml'
 
 jobs:
 
