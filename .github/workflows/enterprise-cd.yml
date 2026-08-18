@@ -9,7 +9,55 @@ on:
     branches:
       - main
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
+
+################################################################################
+# Check Helm Artifact
+################################################################################
+
+  check-helm-artifact:
+
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      helm_artifact: ${{ steps.check.outputs.helm_artifact }}
+
+    steps:
+
+      - name: Check Helm Artifact
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPOSITORY: ${{ github.repository }}
+
+        run: |
+
+          echo "Checking artifacts for CI Run ID: $RUN_ID"
+
+          ARTIFACT_EXISTS=$(gh api \
+            repos/$REPOSITORY/actions/runs/$RUN_ID/artifacts \
+            --jq '.artifacts[] | select(.name == "helm-chart") | .name')
+
+          if [[ "$ARTIFACT_EXISTS" == "helm-chart" ]]; then
+
+            echo "Helm artifact found."
+
+            echo "helm_artifact=true" >> "$GITHUB_OUTPUT"
+
+          else
+
+            echo "Helm artifact not found."
+
+            echo "helm_artifact=false" >> "$GITHUB_OUTPUT"
+
+          fi
 
 ################################################################################
 # DEV Deployment
@@ -17,7 +65,11 @@ jobs:
 
   deploy-dev:
 
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs:
+      - check-helm-artifact
+
+    if: |
+      needs.check-helm-artifact.outputs.helm_artifact == 'true'
 
     runs-on: ubuntu-latest
 
@@ -62,7 +114,7 @@ jobs:
           echo "Helm package found successfully."
 
 ################################################################################
-# Simulate DEV Deployment
+# DEV Deployment
 ################################################################################
 
       - name: Simulate DEV Deployment
